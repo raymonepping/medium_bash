@@ -33,13 +33,13 @@ if [[ -f "$DEFAULT_GITIGNORE" ]]; then
 elif [[ -f "$COMMIT_SCRIPT_FALLBACK" ]]; then
   cp "$COMMIT_SCRIPT_FALLBACK" .gitignore
 else
-  echo "# Auto-generated .gitignore" > .gitignore
+  echo "# Auto-generated .gitignore" >.gitignore
 fi
 
 # 📄 Init files with full license and README
-curl -s https://www.gnu.org/licenses/gpl-3.0.txt > LICENSE
+curl -s https://www.gnu.org/licenses/gpl-3.0.txt >LICENSE
 
-cat > README.md <<EOF
+cat >README.md <<EOF
 # $PROJECT_NAME
 
 Automation scripts and utilities for shell-based workflows.
@@ -81,7 +81,7 @@ git init
 HOOK_PATH=".git/hooks/pre-commit"
 if command -v "$SANITY_CHECK_CMD" &>/dev/null; then
   echo "🪝 Installing pre-commit git hook..."
-  cat > "$HOOK_PATH" <<'EOF'
+  cat >"$HOOK_PATH" <<'EOF'
 #!/bin/bash
 set -euo pipefail
 

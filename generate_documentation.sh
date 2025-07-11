@@ -44,7 +44,7 @@ mkdir -p "$OUTPUT_DIR"
 
 # --- Load ignore list ---
 IGNORED_COMMANDS=("echo" "clear" "pwd" "read" "exit" "if" "fi" "then" "else" "while" "do" "done")
-[[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS < "$IGNORE_FILE"
+[[ -f "$IGNORE_FILE" ]] && mapfile -t IGNORED_COMMANDS <"$IGNORE_FILE"
 
 # --- Tool checks ---
 if command -v shellcheck &>/dev/null; then
@@ -56,22 +56,37 @@ command -v shfmt &>/dev/null && [[ -d "$SCRIPT_DIR/scripts" ]] && find "$SCRIPT_
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --depth)
-      if [[ -n "${2:-}" ]]; then MAX_DEPTH="$2"; shift
-      else echo "❌ Missing value for --depth"; exit 1; fi ;;
-    --include-lint) INCLUDE_LINT=true ;;
-    --strict)
-      if [[ -n "${2:-}" ]]; then STRICT_MODE="$2"; shift
-      else echo "❌ Missing value for --strict"; exit 1; fi ;;
-    --include-called-scripts)
-      if [[ -n "${2:-}" ]]; then
-        if [[ "$2" == "true" ]]; then INCLUDE_CALLED_SCRIPTS=true;
-        else INCLUDE_CALLED_SCRIPTS=false; fi
-        shift
-      else
-        echo "❌ Missing value for --include-called-scripts"; exit 1;
-      fi ;;
-    *) ARGS+=("$1") ;;
+  --depth)
+    if [[ -n "${2:-}" ]]; then
+      MAX_DEPTH="$2"
+      shift
+    else
+      echo "❌ Missing value for --depth"
+      exit 1
+    fi
+    ;;
+  --include-lint) INCLUDE_LINT=true ;;
+  --strict)
+    if [[ -n "${2:-}" ]]; then
+      STRICT_MODE="$2"
+      shift
+    else
+      echo "❌ Missing value for --strict"
+      exit 1
+    fi
+    ;;
+  --include-called-scripts)
+    if [[ -n "${2:-}" ]]; then
+      if [[ "$2" == "true" ]]; then
+        INCLUDE_CALLED_SCRIPTS=true
+      else INCLUDE_CALLED_SCRIPTS=false; fi
+      shift
+    else
+      echo "❌ Missing value for --include-called-scripts"
+      exit 1
+    fi
+    ;;
+  *) ARGS+=("$1") ;;
   esac
   shift
 done
@@ -79,7 +94,8 @@ set -- "${ARGS[@]}"
 
 # --- Utility: Emoji echo ---
 em() {
-  local emoji="$1"; shift
+  local emoji="$1"
+  shift
   if [[ "$EMOJI_MODE" == true ]]; then
     echo "$emoji $*"
   else
@@ -97,7 +113,7 @@ clean_trailing_blank_lines() {
       for(i=NR;i>=1;i--) if(lines[i] ~ /[^[:space:]]/) { last=i; break }
       for(i=1;i<=last;i++) print lines[i]
     }
-  ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+  ' "$file" >"${file}.tmp" && mv "${file}.tmp" "$file"
 }
 
 # --- Lint Badge Generation ---
@@ -126,7 +142,7 @@ generate_bash_badge() {
   local bashv color badge
   bashv=$(bash --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
   [[ -z "$bashv" ]] && return
-  bashv="${bashv%%.0}"      
+  bashv="${bashv%%.0}"
   color="red"
   [[ "${bashv%%.*}" -lt 5 ]] && color="yellow"
   badge="[![Bash](https://img.shields.io/badge/bash-${bashv//./--}-$color)](https://www.gnu.org/software/bash/)"
@@ -164,7 +180,8 @@ compose_badge_row() {
 
   # Only add if enabled and present
   [[ "$INCLUDE_LINT" == true ]] && {
-    local lint; lint="$(generate_lint_badge "$file")"
+    local lint
+    lint="$(generate_lint_badge "$file")"
     [[ -n "$lint" ]] && badge_lines+=("$lint")
   }
   local size updated bashv
@@ -179,7 +196,6 @@ compose_badge_row() {
     echo "$b"
   done
 }
-
 
 # --- Summary Extraction ---
 extract_summary() {
@@ -200,9 +216,9 @@ extract_summary() {
 
 # --- Variable Extraction ---
 extract_variables() {
-  grep -E '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$1" \
-    | cut -d'=' -f1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' \
-    | sort -u | awk 'NF { print "- " $0 }'
+  grep -E '^[[:space:]]*[A-Z_][A-Z0-9_]*=' "$1" |
+    cut -d'=' -f1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' |
+    sort -u | awk 'NF { print "- " $0 }'
 }
 
 # --- Detect Called Scripts ---
@@ -268,7 +284,7 @@ parse_script() {
     echo "## Variables Set - ${base_name}.sh"
     echo "$variable_section"
     echo
-  } >> "$output_file"
+  } >>"$output_file"
 
   if [[ "$INCLUDE_CALLED_SCRIPTS" == true ]]; then
     mapfile -t called_scripts < <(find_called_scripts "$file")
@@ -292,13 +308,13 @@ for input in "${ARGS[@]}"; do
   if [[ -f "$input" ]]; then
     main_name="$(basename "$input" .sh)"
     output_file="$OUTPUT_DIR/$main_name.md"
-    : > "$output_file"
+    : >"$output_file"
     parse_script "$input" 0 "$output_file" true
   elif [[ -d "$input" ]]; then
     while IFS= read -r script; do
       main_name="$(basename "$script" .sh)"
       output_file="$OUTPUT_DIR/$main_name.md"
-      : > "$output_file"
+      : >"$output_file"
       parse_script "$script" 0 "$output_file" true
     done < <(find "$input" -name "*.sh")
   else
